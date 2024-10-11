@@ -1,5 +1,7 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Payroll.API.Common;
+using Payroll.API.Common.Exceptions;
 using Payroll.API.DataAccess;
 
 namespace Payroll.API.EmployeesRoster;
@@ -41,12 +43,21 @@ public static class AddNewEmployee
 
 	public static async Task<IResult> Handle(
 			Request request,
-			PayrollContext context
+			PayrollContext context,
+			CancellationToken cancellationToken
 		)
 	{
+		bool employeeAlreadyExists = await context.Employees
+			.AnyAsync(e => e.Name == request.Name, cancellationToken: cancellationToken);
+		if (employeeAlreadyExists)
+			throw new EmployeeAlreadyExists();
 		Employee employee = new(request.Name, request.HourlyRate);
 		context.Add(employee);
-		await context.SaveChangesAsync();
+		await context.SaveChangesAsync(cancellationToken);
 		return Results.Created();
 	}
+
+	public class EmployeeAlreadyExists()
+		: DuplicateResourceException(nameof(Employee), "Employee with specified name already in use");
+
 }
