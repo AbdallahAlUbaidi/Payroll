@@ -1,6 +1,7 @@
 using FluentValidation;
 using Payroll.API.DataAccess;
 using Payroll.API.EmployeesRoster;
+using Payroll.API.GlobalExceptionHandler;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +13,12 @@ builder.Services.AddEndpointsApiExplorer()
     .AddSwaggerGen()
     .AddValidatorsFromAssemblyContaining<AddNewEmployee.Validator>()
     .AddHttpContextAccessor()
-    .AddPayrollContext(connectionString);
+    .AddLogging(options =>
+    {
+        options.AddConsole();
+    })
+    .AddPayrollContext(connectionString)
+    .ConfigureExceptionHandlers();
 
 var app = builder.Build();
 
@@ -23,6 +29,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapEmployeeRosterEndpoints();
+
+app.UseExceptionHandler(o => { });
 
 app.UseHttpsRedirection();
 
